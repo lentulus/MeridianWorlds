@@ -8,7 +8,7 @@
 ## Data sources
 Database paths are defined in `config.py` — update them there, not in individual scripts.
 
-- `STARFIELD_DB`: not a direct file dependency. Physical body and system data comes from the Meridian API (`meridian/api.py`). `STARFIELD_DB` in config.py is retained only if a local cache is ever needed.
+- `STARFIELD_DB`: path to the immutable star/system database created and owned by the Meridian project. Worlds reads it read-only via `meridian/api.py`. Do not write to it.
 - `WORLDS_DB`: `/Users/lentulus/databases/world.db` — project database for new tables and data.
 
 Import in scripts with: `from config import STARFIELD_DB, WORLDS_DB`
@@ -18,6 +18,12 @@ Import in scripts with: `from config import STARFIELD_DB, WORLDS_DB`
 - `sql/` — SQL files (schemas, queries, migrations)
 - `docs/` — Documentation
 - `config.py` — Database paths (single source of truth)
+- `meridian/` — Read-only boundary layer to starfield.db; never redefine its models elsewhere
+- `server/` — FastAPI visualization server; exposes starfield and worlds data over HTTP/WebSocket
+  - `server/routes/` — one file per data domain (systems, bodies, ships)
+  - `server/main.py` — app entry point; run with `uvicorn server.main:app --reload`
+- `client/` — Three.js browser visualization (not yet implemented)
+  - `client/src/` — JavaScript source
 
 ## Meridian API
 - Import from `meridian/api.py` and `meridian/models.py` — never copy or redefine these models.
