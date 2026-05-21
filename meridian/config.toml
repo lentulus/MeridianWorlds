@@ -1,0 +1,9 @@
+[immutable]
+path = "/Volumes/Lexar/MeridianData"
+
+[volatile]
+path = "meridian/VolatileData"
+
+[volatile.databases]
+colonybase = "colonybase.db"
+shipbase   = "shipbase.db"
