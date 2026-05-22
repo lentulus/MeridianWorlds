@@ -33,6 +33,12 @@ from textwrap import dedent
 
 import anthropic
 
+# Locate project root and supporting/ regardless of working directory.
+_SUPPORTING = next(p for p in Path(__file__).resolve().parents if p.name == 'supporting')
+_ROOT = _SUPPORTING.parent
+sys.path.insert(0, str(_ROOT))       # for config.py
+sys.path.insert(0, str(_SUPPORTING)) # for meridian/
+
 import meridian.api as meridian_api
 from config import WORLDS_DB
 

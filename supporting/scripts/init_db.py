@@ -2,7 +2,7 @@
 """Create world.db schema and seed GURPS Spaceships 1 data."""
 
 import sqlite3, sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from config import WORLDS_DB
 
 # ---------------------------------------------------------------------------

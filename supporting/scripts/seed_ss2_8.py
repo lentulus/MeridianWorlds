@@ -4,7 +4,7 @@
 import sqlite3, sys, os, re
 from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from config import WORLDS_DB
 
 LOG_PATH = Path(__file__).parent.parent / 'docs' / 'logs' / 'ss2_8_import.md'

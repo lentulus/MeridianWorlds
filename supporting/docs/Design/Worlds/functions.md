@@ -16,4 +16,8 @@
 ### System Orbit Display
 - graphical
 
-## 
+## Ship Related
+
+### Ship Design
+- select components by tech level
+- price 
