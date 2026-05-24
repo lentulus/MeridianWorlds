@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import type { StarListRow } from '@worlds/shared';
 
-const MPC_TO_LY = 3_261_560;
 
 export class StarMap {
   private renderer: THREE.WebGLRenderer;
@@ -47,10 +46,10 @@ export class StarMap {
 
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
-      // Convert mpc → ly display units (scale down so 1 ly ≈ 1 unit)
-      positions[i * 3]     = r.x_mpc * MPC_TO_LY;
-      positions[i * 3 + 1] = r.y_mpc * MPC_TO_LY;
-      positions[i * 3 + 2] = r.z_mpc * MPC_TO_LY;
+      // x_pc/y_pc/z_pc are stored in milliparsecs; divide to get parsecs
+      positions[i * 3]     = r.x_pc / 1000;
+      positions[i * 3 + 1] = r.y_pc / 1000;
+      positions[i * 3 + 2] = r.z_pc / 1000;
 
       const col = spectralColour(r.primary_spectral);
       colors[i * 3]     = col.r;

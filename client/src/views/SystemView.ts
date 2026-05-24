@@ -11,7 +11,7 @@ export function SystemView(container: HTMLElement) {
       <span id="sv-title" class="view-title"></span>
     </div>
     <div class="system-layout">
-      <svg id="sv-orbit" class="orbit-svg"></svg>
+      <svg id="sv-orbit" class="orbit-svg" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"></svg>
       <aside id="sv-body-panel" class="body-panel"><p class="dim">Select a body</p></aside>
     </div>`;
 
@@ -29,7 +29,7 @@ export function SystemView(container: HTMLElement) {
     titleEl.textContent = 'Loading…';
     try {
       const system: SystemDetail = await fetchSystem(id);
-      titleEl.textContent = `${system.name}  —  ${system.dist_ly} ly`;
+      titleEl.textContent = `${system.name}  —  ${system.dist_pc} pc`;
 
       renderOrbitDiagram(orbitSvg, system.stars, system.bodies, (b: BodyDetail) => {
         renderBodyPanel(bodyPanel, b);

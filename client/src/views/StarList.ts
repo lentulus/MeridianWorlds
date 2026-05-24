@@ -11,7 +11,7 @@ export function StarListView(container: HTMLElement) {
   container.innerHTML = `
     <div class="toolbar">
       <label>Name <input id="sl-name" type="text" placeholder="Sol…"></label>
-      <label>Max dist (ly) <input id="sl-dist" type="number" min="0" step="1" value="100"></label>
+      <label>Max dist (pc) <input id="sl-dist" type="number" min="0" step="1" value="30"></label>
       <label>Spectral <input id="sl-spectral" type="text" placeholder="G…" style="width:4em"></label>
       <label>HZ <select id="sl-hz"><option value="">Any</option><option value="true">Yes</option><option value="false">No</option></select></label>
       <button id="sl-search">Search</button>
@@ -22,7 +22,7 @@ export function StarListView(container: HTMLElement) {
       <table id="sl-table" class="data-table">
         <thead>
           <tr>
-            <th>Name</th><th>Dist (ly)</th><th>Spectral</th>
+            <th>Name</th><th>Dist (pc)</th><th>Spectral</th>
             <th>Luminosity</th><th>HZ</th><th>Bodies</th>
           </tr>
         </thead>
@@ -48,7 +48,7 @@ export function StarListView(container: HTMLElement) {
     try {
       const params: Record<string, string | number> = { limit: 500 };
       if (nameEl.value)     params.name = nameEl.value;
-      if (distEl.value)     params.dist_max_ly = Number(distEl.value);
+      if (distEl.value)     params.dist_max_pc = Number(distEl.value);
       if (spectralEl.value) params.spectral = spectralEl.value;
       if (hzEl.value)       params.hz_eligible = hzEl.value;
 
@@ -69,7 +69,7 @@ export function StarListView(container: HTMLElement) {
     tbody.innerHTML = rows.map(r => `
       <tr data-id="${r.system_id}" style="cursor:pointer">
         <td>${r.name}</td>
-        <td>${r.dist_ly.toFixed(2)}</td>
+        <td>${r.dist_pc.toFixed(2)}</td>
         <td>${r.primary_spectral}</td>
         <td>${r.luminosity_sol.toFixed(3)}</td>
         <td>${r.hz_eligible ? '✓' : ''}</td>

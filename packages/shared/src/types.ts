@@ -3,15 +3,15 @@
 export interface StarListRow {
   system_id: string;
   name: string;
-  dist_ly: number;
+  dist_pc: number;
   age_gyr: number | null;
   primary_spectral: string;
   luminosity_sol: number;
   hz_eligible: boolean;
   body_count: number;
-  x_mpc: number;
-  y_mpc: number;
-  z_mpc: number;
+  x_pc: number;
+  y_pc: number;
+  z_pc: number;
 }
 
 export interface StarListResponse {
@@ -21,11 +21,11 @@ export interface StarListResponse {
 
 export interface StarListParams {
   name?: string;
-  dist_min_ly?: number;
-  dist_max_ly?: number;
+  dist_min_pc?: number;
+  dist_max_pc?: number;
   spectral?: string;
   hz_eligible?: boolean;
-  sort?: 'name' | 'dist_ly' | 'age_gyr';
+  sort?: 'name' | 'dist_pc' | 'age_gyr';
   dir?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
@@ -60,7 +60,7 @@ export interface BodyDetail {
 export interface SystemDetail {
   system_id: string;
   name: string;
-  dist_ly: number;
+  dist_pc: number;
   age_gyr: number | null;
   stars: StarDetail[];
   bodies: BodyDetail[];

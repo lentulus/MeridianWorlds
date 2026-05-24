@@ -74,9 +74,9 @@ style.textContent = `
   .data-table td { padding: 3px 8px; border-bottom: 1px solid #111; }
   .data-table tr:hover td { background: #141a24; }
 
-  .system-layout { flex: 1; display: flex; overflow: hidden; }
-  .orbit-svg { flex: 1; min-width: 0; }
-  .body-panel { width: 240px; padding: 10px; overflow-y: auto; border-left: 1px solid #1a1a1a; }
+  .system-layout { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+  .orbit-svg { flex: 1; min-width: 0; min-height: 0; display: block; }
+  .body-panel { width: 220px; flex-shrink: 0; padding: 10px; overflow-y: auto; border-left: 1px solid #1a1a1a; }
 
   .kv-table { width: 100%; border-collapse: collapse; }
   .kv-table th { color: #666; font-weight: normal; text-align: right; padding: 2px 8px 2px 0; width: 45%; }

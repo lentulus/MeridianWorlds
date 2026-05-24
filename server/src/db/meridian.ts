@@ -6,7 +6,6 @@ import type {
   StarListRow, StarListParams, SystemDetail, StarDetail, BodyDetail,
 } from '@worlds/shared';
 
-const PC_TO_LY = 3.26156;
 const DATA = Config.meridianData;
 
 // ── DuckDB singleton ─────────────────────────────────────────────────────────
@@ -114,19 +113,17 @@ export async function searchStars(params: StarListParams): Promise<{ total: numb
     const q = params.name.toLowerCase();
     candidates = candidates.filter(e => e.name.toLowerCase().includes(q));
   }
-  if (params.dist_min_ly != null) {
-    const minPc = params.dist_min_ly / PC_TO_LY;
-    candidates = candidates.filter(e => e.dist_pc >= minPc);
+  if (params.dist_min_pc != null) {
+    candidates = candidates.filter(e => e.dist_pc >= params.dist_min_pc!);
   }
-  if (params.dist_max_ly != null) {
-    const maxPc = params.dist_max_ly / PC_TO_LY;
-    candidates = candidates.filter(e => e.dist_pc <= maxPc);
+  if (params.dist_max_pc != null) {
+    candidates = candidates.filter(e => e.dist_pc <= params.dist_max_pc!);
   }
 
   const total = candidates.length;
 
   // Sort before paginating.
-  const sort = params.sort ?? 'dist_ly';
+  const sort = params.sort ?? 'dist_pc';
   const dir  = params.dir  ?? 'asc';
   candidates.sort((a, b) => {
     let va: number | string, vb: number | string;
@@ -204,15 +201,15 @@ export async function searchStars(params: StarListParams): Promise<{ total: numb
     return {
       system_id:       e.system_id,
       name:            e.name,
-      dist_ly:         Math.round(e.dist_pc * PC_TO_LY * 100) / 100,
+      dist_pc:         Math.round(e.dist_pc * 100) / 100,
       age_gyr:         null,
       primary_spectral: star?.spectral  ?? '?',
       luminosity_sol:  star?.luminosity_sol ?? 0,
       hz_eligible:     star?.hz_eligible    ?? false,
       body_count:      countMap.get(e.system_id) ?? 0,
-      x_mpc:           e.x_mpc,
-      y_mpc:           e.y_mpc,
-      z_mpc:           e.z_mpc,
+      x_pc:            e.x_mpc,
+      y_pc:            e.y_mpc,
+      z_pc:            e.z_mpc,
     };
   });
 
@@ -292,7 +289,7 @@ export async function getSystem(systemId: string): Promise<SystemDetail | null> 
   return {
     system_id: entry.system_id,
     name:      entry.name,
-    dist_ly:   Math.round(entry.dist_pc * PC_TO_LY * 100) / 100,
+    dist_pc:   Math.round(entry.dist_pc * 100) / 100,
     age_gyr:   null,
     stars,
     bodies,
