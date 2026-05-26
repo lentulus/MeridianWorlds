@@ -7,10 +7,12 @@ export class StarMap {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private points: THREE.Points | null = null;
+  private cross: THREE.LineSegments;
   private animId = 0;
   private isDragging = false;
   private lastMouse = { x: 0, y: 0 };
   private spherical = new THREE.Spherical(200, Math.PI / 3, 0);
+  private centre = new THREE.Vector3(0, 0, 0);
 
   constructor(private container: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -25,14 +27,15 @@ export class StarMap {
       60, container.clientWidth / container.clientHeight, 0.1, 5000
     );
 
-    // Sol crosshair
+    // Centre crosshair — moves with setCentre()
     const crossGeo = new THREE.BufferGeometry();
     crossGeo.setFromPoints([
       new THREE.Vector3(-4, 0, 0), new THREE.Vector3(4, 0, 0),
       new THREE.Vector3(0, -4, 0), new THREE.Vector3(0, 4, 0),
       new THREE.Vector3(0, 0, -4), new THREE.Vector3(0, 0, 4),
     ]);
-    this.scene.add(new THREE.LineSegments(crossGeo, new THREE.LineBasicMaterial({ color: 0xffdd88 })));
+    this.cross = new THREE.LineSegments(crossGeo, new THREE.LineBasicMaterial({ color: 0xffdd88 }));
+    this.scene.add(this.cross);
 
     this.bindEvents();
     this.animate();
@@ -65,6 +68,11 @@ export class StarMap {
     this.scene.add(this.points);
   }
 
+  setCentre(x: number, y: number, z: number) {
+    this.centre.set(x, y, z);
+    this.cross.position.set(x, y, z);
+  }
+
   resize() {
     const w = this.container.clientWidth, h = this.container.clientHeight;
     this.renderer.setSize(w, h);
@@ -80,9 +88,9 @@ export class StarMap {
 
   private animate() {
     this.animId = requestAnimationFrame(() => this.animate());
-    const pos = new THREE.Vector3().setFromSpherical(this.spherical);
+    const pos = new THREE.Vector3().setFromSpherical(this.spherical).add(this.centre);
     this.camera.position.copy(pos);
-    this.camera.lookAt(0, 0, 0);
+    this.camera.lookAt(this.centre);
     this.renderer.render(this.scene, this.camera);
   }
 

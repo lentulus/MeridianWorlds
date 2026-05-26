@@ -57,6 +57,13 @@ export function mpcToPc(mpc: number): number {
   return mpc / 1000;
 }
 
+function entryDist(e: IndexEntry, cx: number, cy: number, cz: number): number {
+  const dx = mpcToPc(e.x_mpc) - cx;
+  const dy = mpcToPc(e.y_mpc) - cy;
+  const dz = mpcToPc(e.z_mpc) - cz;
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
 // ── Named-system startup index ───────────────────────────────────────────────
 
 export interface IndexEntry {
@@ -117,15 +124,21 @@ export function filterAndPage(
 ): { total: number; page: IndexEntry[] } {
   let candidates = [...entries];
 
+  const cx = params.center_x_pc;
+  const cy = params.center_y_pc;
+  const cz = params.center_z_pc;
+  const hasCentre = cx != null && cy != null && cz != null;
+  const dist = (e: IndexEntry) => hasCentre ? entryDist(e, cx!, cy!, cz!) : e.dist_pc;
+
   if (params.name) {
     const q = params.name.toLowerCase();
     candidates = candidates.filter(e => e.name.toLowerCase().includes(q));
   }
   if (params.dist_min_pc != null) {
-    candidates = candidates.filter(e => e.dist_pc >= params.dist_min_pc!);
+    candidates = candidates.filter(e => dist(e) >= params.dist_min_pc!);
   }
   if (params.dist_max_pc != null) {
-    candidates = candidates.filter(e => e.dist_pc <= params.dist_max_pc!);
+    candidates = candidates.filter(e => dist(e) <= params.dist_max_pc!);
   }
 
   const total = candidates.length;
@@ -133,8 +146,8 @@ export function filterAndPage(
   const sort = params.sort ?? 'dist_pc';
   const dir  = params.dir  ?? 'asc';
   candidates.sort((a, b) => {
-    const va = sort === 'name' ? a.name    : a.dist_pc;
-    const vb = sort === 'name' ? b.name    : b.dist_pc;
+    const va = sort === 'name' ? a.name : dist(a);
+    const vb = sort === 'name' ? b.name : dist(b);
     if (va < vb) return dir === 'asc' ? -1 : 1;
     if (va > vb) return dir === 'asc' ?  1 : -1;
     return 0;
@@ -208,12 +221,18 @@ export async function searchStars(params: StarListParams): Promise<{ total: numb
     });
   }
 
+  const scx = params.center_x_pc;
+  const scy = params.center_y_pc;
+  const scz = params.center_z_pc;
+  const hasCentre = scx != null && scy != null && scz != null;
+
   const rows: StarListRow[] = filtered.map(e => {
     const star = starMap.get(e.system_id);
+    const rawDist = hasCentre ? entryDist(e, scx!, scy!, scz!) : e.dist_pc;
     return {
       system_id:       e.system_id,
       name:            e.name,
-      dist_pc:         Math.round(e.dist_pc * 100) / 100,
+      dist_pc:         Math.round(rawDist * 100) / 100,
       age_gyr:         null,
       primary_spectral: star?.spectral  ?? '?',
       luminosity_sol:  star?.luminosity_sol ?? 0,

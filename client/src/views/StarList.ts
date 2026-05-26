@@ -7,6 +7,7 @@ export function StarListView(container: HTMLElement) {
   let rows: StarListRow[] = [];
   let mapMode = false;
   let starMap: StarMap | null = null;
+  let centreX = 0, centreY = 0, centreZ = 0;
 
   container.innerHTML = `
     <div class="toolbar">
@@ -14,6 +15,7 @@ export function StarListView(container: HTMLElement) {
       <label>Max dist (pc) <input id="sl-dist" type="number" min="0" step="1" value="30"></label>
       <label>Spectral <input id="sl-spectral" type="text" placeholder="G…" style="width:4em"></label>
       <label>HZ <select id="sl-hz"><option value="">Any</option><option value="true">Yes</option><option value="false">No</option></select></label>
+      <label>Centre <input id="sl-centre" type="text" placeholder="Sol…"></label>
       <button id="sl-search">Search</button>
       <button id="sl-display" disabled>Display</button>
       <span id="sl-status" class="dim"></span>
@@ -35,6 +37,7 @@ export function StarListView(container: HTMLElement) {
   const distEl     = container.querySelector<HTMLInputElement>('#sl-dist')!;
   const spectralEl = container.querySelector<HTMLInputElement>('#sl-spectral')!;
   const hzEl       = container.querySelector<HTMLSelectElement>('#sl-hz')!;
+  const centreEl   = container.querySelector<HTMLInputElement>('#sl-centre')!;
   const searchBtn  = container.querySelector<HTMLButtonElement>('#sl-search')!;
   const displayBtn = container.querySelector<HTMLButtonElement>('#sl-display')!;
   const statusEl   = container.querySelector<HTMLSpanElement>('#sl-status')!;
@@ -46,18 +49,38 @@ export function StarListView(container: HTMLElement) {
     statusEl.textContent = 'Searching…';
     searchBtn.disabled = true;
     try {
-      const params: Record<string, string | number> = { limit: 500 };
+      // Resolve centre star if specified; default is Sol at the origin.
+      centreX = 0; centreY = 0; centreZ = 0;
+      const centreName = centreEl.value.trim();
+      if (centreName) {
+        const centreData = await fetchStars({ name: centreName, limit: 1 });
+        if (centreData.rows.length === 0) {
+          statusEl.textContent = `Centre star "${centreName}" not found`;
+          return;
+        }
+        ({ x_pc: centreX, y_pc: centreY, z_pc: centreZ } = centreData.rows[0]);
+      }
+
+      const params: Partial<import('@worlds/shared').StarListParams> = { limit: 500 };
       if (nameEl.value)     params.name = nameEl.value;
       if (distEl.value)     params.dist_max_pc = Number(distEl.value);
       if (spectralEl.value) params.spectral = spectralEl.value;
-      if (hzEl.value)       params.hz_eligible = hzEl.value;
+      if (hzEl.value)       params.hz_eligible = hzEl.value === 'true';
+      if (centreName) {
+        params.center_x_pc = centreX;
+        params.center_y_pc = centreY;
+        params.center_z_pc = centreZ;
+      }
 
-      const data = await fetchStars(params as any);
+      const data = await fetchStars(params);
       rows = data.rows;
       statusEl.textContent = `${data.total} systems`;
       displayBtn.disabled = rows.length === 0;
       renderTable();
-      if (mapMode && starMap) starMap.setStars(rows);
+      if (mapMode && starMap) {
+        starMap.setCentre(centreX, centreY, centreZ);
+        starMap.setStars(rows);
+      }
     } catch (err: any) {
       statusEl.textContent = `Error: ${err.message}`;
     } finally {
@@ -91,6 +114,7 @@ export function StarListView(container: HTMLElement) {
       mapDiv.style.display = 'flex';
       displayBtn.textContent = 'List';
       if (!starMap) starMap = new StarMap(mapDiv);
+      starMap.setCentre(centreX, centreY, centreZ);
       starMap.setStars(rows);
     } else {
       mapDiv.style.display = 'none';

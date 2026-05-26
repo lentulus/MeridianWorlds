@@ -67,4 +67,23 @@ describe('filterAndPage', () => {
     expect(page[0].name).toBe('Sol');
     expect(page[1].name).toBe('Alpha Centauri');
   });
+
+  // Sirius fixture coords: x_mpc=120, y_mpc=220, z_mpc=320 → (0.12, 0.22, 0.32) pc
+  // Distance from Sirius to Sol (0,0,0): sqrt(0.12²+0.22²+0.32²) ≈ 0.406 pc
+
+  it('center: star at centre has zero computed distance (Sirius as centre)', () => {
+    const { page } = filterAndPage(entries, {
+      center_x_pc: 0.12, center_y_pc: 0.22, center_z_pc: 0.32,
+      dist_max_pc: 0.001,
+    });
+    expect(page.map(e => e.name)).toContain('Sirius');
+  });
+
+  it('center: Sol excluded when dist_max_pc < distance from Sirius to Sol', () => {
+    const { page } = filterAndPage(entries, {
+      center_x_pc: 0.12, center_y_pc: 0.22, center_z_pc: 0.32,
+      dist_max_pc: 0.05,
+    });
+    expect(page.some(e => e.name === 'Sol')).toBe(false);
+  });
 });

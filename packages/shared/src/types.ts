@@ -29,6 +29,9 @@ export interface StarListParams {
   dir?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
+  center_x_pc?: number;
+  center_y_pc?: number;
+  center_z_pc?: number;
 }
 
 export interface StarDetail {

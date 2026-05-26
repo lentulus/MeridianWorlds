@@ -12,15 +12,18 @@ stars.get('/', async (c) => {
 
   const q = (k: string) => c.req.query(k);
   const params = {
-    name:        q('name')        || undefined,
-    dist_min_pc: q('dist_min_pc') ? Number(q('dist_min_pc')) : undefined,
-    dist_max_pc: q('dist_max_pc') ? Number(q('dist_max_pc')) : undefined,
-    spectral:    q('spectral')    || undefined,
-    hz_eligible: q('hz_eligible') ? q('hz_eligible') === 'true' : undefined,
-    sort:        (q('sort') || 'dist_pc') as any,
-    dir:         (q('dir')  || 'asc')    as any,
-    limit:       q('limit')  ? Number(q('limit'))  : 100,
-    offset:      q('offset') ? Number(q('offset')) : 0,
+    name:         q('name')         || undefined,
+    dist_min_pc:  q('dist_min_pc')  ? Number(q('dist_min_pc'))  : undefined,
+    dist_max_pc:  q('dist_max_pc')  ? Number(q('dist_max_pc'))  : undefined,
+    spectral:     q('spectral')     || undefined,
+    hz_eligible:  q('hz_eligible')  ? q('hz_eligible') === 'true' : undefined,
+    sort:         (q('sort') || 'dist_pc') as any,
+    dir:          (q('dir')  || 'asc')    as any,
+    limit:        q('limit')  ? Number(q('limit'))  : 100,
+    offset:       q('offset') ? Number(q('offset')) : 0,
+    center_x_pc:  q('center_x_pc') ? Number(q('center_x_pc')) : undefined,
+    center_y_pc:  q('center_y_pc') ? Number(q('center_y_pc')) : undefined,
+    center_z_pc:  q('center_z_pc') ? Number(q('center_z_pc')) : undefined,
   };
 
   try {
