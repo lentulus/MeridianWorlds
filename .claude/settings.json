@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls /Volumes/Lexar/projects/ColonyModels/docs/design/)",
+      "Read(//Volumes/Lexar/projects/ColonyModels/docs/design/**)",
+      "Bash(pnpm test *)",
+      "Bash(git -C /Users/lentulus/projects/worlds add package.json pnpm-lock.yaml server/package.json server/vitest.config.ts server/src/app.ts server/src/main.ts client/package.json client/vitest.config.ts packages/shared/package.json packages/shared/vitest.config.ts)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
