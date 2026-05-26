@@ -7,10 +7,10 @@ known to be wrong, and what to do next.
 
 ## TL;DR for a fresh session
 
-**Star List + Map MVP is in progress.** Slices 0–2 are complete (commits
-`9e051d5`, `0e28314`, `230f399`). vitest is installed in all three workspaces;
-25 unit tests are green. G-002, G-006, G-007 are closed. Next step: Slice 2b
-(center-relative search) then Slice 3 (HTTP integration tests).
+**Star List + Map MVP is in progress.** Slices 0–2b are complete (commits
+`9e051d5`, `0e28314`, `230f399`, `e683795`). vitest is installed in all three
+workspaces; 27 unit tests are green. G-002, G-006, G-007 are closed.
+Next step: **Slice 3** — HTTP integration tests (`stars.http.test.ts`).
 
 The first conversation in a new session should be:
 1. Read this file.
@@ -86,29 +86,31 @@ The design authority is
 
 ```
 worlds/
-├── packages/shared/src/types.ts    All API request/response types
+├── packages/shared/src/types.ts    All API request/response types (incl. centre params)
 ├── server/src/
 │   ├── app.ts                      Hono app: middleware + routes (no port binding)
 │   ├── main.ts                     Startup only: buildIndex() then serve()
 │   ├── config.ts                   Reads MERIDIAN_DATA, WORLDS_DB, PORT from .env
 │   ├── db/
 │   │   ├── meridian.ts             DuckDB index + filterAndPage() + searchStars() + getSystem()
+│   │   │                           entryDist() computes centre-relative distance
 │   │   ├── meridian.math.test.ts   5 tests: mpcToPc exact values + round-trip
-│   │   ├── meridian.filter.test.ts 10 tests: name/dist filter, sort, pagination
+│   │   ├── meridian.filter.test.ts 12 tests: name/dist/centre filter, sort, pagination
 │   │   └── ships.ts                node:sqlite CRUD for all ship tables
 │   └── routes/
-│       ├── stars.ts                GET /api/stars, /api/stars/by-name, /api/stars/:id
+│       ├── stars.ts                GET /api/stars (incl. center_x/y/z_pc params),
+│       │                           /api/stars/by-name, /api/stars/:id
 │       └── ships.ts                Full CRUD for /api/ships + hull-sizes + catalog
 └── client/src/
     ├── main.ts                     Hash router, global CSS, view lifecycle
     ├── api/stars.ts + api/ships.ts Typed fetch wrappers
     ├── state/selection.ts          Shared signal: selectedSystemId, selectedShipId
     ├── views/
-    │   ├── StarList.ts             Filterable table + Display ↔ List toggle
+    │   ├── StarList.ts             Filterable table + Display ↔ List toggle + Centre input
     │   ├── SystemView.ts           Fetches system, drives OrbitDiagram + BodyPanel
     │   └── ShipDesign.ts           Ship CRUD, slot drag-assign, catalog load
     └── components/
-        ├── StarMap.ts              Three.js WebGL renderer, orbit controls
+        ├── StarMap.ts              Three.js WebGL renderer; setCentre() shifts camera + crosshair
         ├── StarMap.math.test.ts    10 tests: spectral colours + fast-check property
         ├── OrbitDiagram.ts         SVG ellipse renderer (100 lines)
         ├── BodyPanel.ts            Physical data sidebar (25 lines — complete)
@@ -117,7 +119,7 @@ worlds/
 ```
 
 **Test infrastructure installed.** vitest 4.1.7 in all three workspaces;
-`pnpm test` from root runs all. 25 tests green (Slices 1–2). `app.ts`/`main.ts`
+`pnpm test` from root runs all. 27 tests green (Slices 1–2b). `app.ts`/`main.ts`
 split enables handler tests without port binding.
 
 ---
@@ -212,6 +214,10 @@ order (easiest to hardest, given known gaps):
   execution record with `[AI]` / `[HUMAN]` tags
 
 The checklist is the running record of execution. Open it to find the next step.
+
+**Slices 0–2b are complete.** Next: Slice 3 (HTTP integration tests via
+`app.request()` — no port needed; `buildIndex()` in `beforeAll`). See
+checklist §Slice 3 for the nine test cases including the G-006 regression.
 
 ---
 

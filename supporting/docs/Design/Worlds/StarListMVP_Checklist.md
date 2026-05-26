@@ -180,46 +180,45 @@ Goal: star list distance filter and display works relative to a user-selected
 center star, not always from Sol. User enters a name in a "Center" field; the
 search re-fires with that star's coordinates as origin.
 
-- [ ] **2b.1 [AI]** Update `StarListParams` in `packages/shared/src/types.ts`:
+- [x] **2b.1 [AI]** Update `StarListParams` in `packages/shared/src/types.ts`:
       add `center_x_pc?: number; center_y_pc?: number; center_z_pc?: number`.
-      *Result:* —
+      *Result:* Done.
 
-- [ ] **2b.2 [AI]** Write red tests in `server/src/db/meridian.filter.test.ts`:
-      - When center = Sirius coords, Sol's computed dist ≈ 2.64 pc (not 0)
-      - When center = Sol (default 0,0,0), all existing tests still pass
-      *Result:* —
+- [x] **2b.2 [AI]** Write red tests in `server/src/db/meridian.filter.test.ts`:
+      - When center = Sirius coords, Sol excluded by dist_max_pc filter
+      - When center = Sirius, Sirius itself has zero computed distance
+      *Result:* Both red for right reason (current code uses stored dist_pc).
 
-- [ ] **2b.3 [HUMAN]** Red review.
-      *Result:* —
+- [x] **2b.3 [HUMAN]** Red review.
+      *Result:* Approved.
 
-- [ ] **2b.4 [AI]** Update `filterAndPage` to compute distance from center when
-      provided; update `searchStars` to pass center through and use computed dist
-      in the returned `dist_pc` field.
-      *Result:* —
+- [x] **2b.4 [AI]** Update `filterAndPage` to compute distance from center when
+      provided; update `searchStars` to use computed dist in returned `dist_pc`.
+      Also added `entryDist()` pure helper. Updated route to parse centre params.
+      *Result:* Done. 17/17 server tests green.
 
-- [ ] **2b.5 [AI]** Add "Center" name input to `client/src/views/StarList.ts`:
-      on search, resolve center name → coordinates via a `/api/stars/by-name`
-      call, then pass `center_x_pc/y_pc/z_pc` in the search params.
-      *Result:* —
+- [x] **2b.5 [AI]** Add "Centre" name input to `client/src/views/StarList.ts`:
+      resolves centre name via `fetchStars({name, limit:1})`, passes coords to search.
+      *Result:* Done.
 
-- [ ] **2b.6 [AI]** Shift the Three.js scene origin in `StarMap.ts` to the center
-      star's position so the map renders centred on the chosen star.
-      *Result:* —
+- [x] **2b.6 [AI]** Shift Three.js scene: camera orbits around centre; crosshair
+      moves to centre position via `cross.position.set()`.
+      *Result:* Done.
 
-- [ ] **2b.7 [AI]** Run `pnpm test`. All tests green. Report output.
-      *Result:* —
+- [x] **2b.7 [AI]** Run `pnpm test`. All tests green. Report output.
+      *Result:* 27/27 green across all workspaces.
 
-- [ ] **2b.8 [AI]** Post ready-for-review summary.
-      *Result:* —
+- [x] **2b.8 [AI]** Post ready-for-review summary.
+      *Result:* Posted in chat.
 
-- [ ] **2b.9 [HUMAN]** Read diff + run `pnpm dev` to confirm centre behaviour.
-      *Result:* —
+- [x] **2b.9 [HUMAN]** Read diff + run `pnpm dev` to confirm centre behaviour.
+      *Result:* Approved.
 
-- [ ] **2b.10 [HUMAN]** **Approve commit** *(double-approval gate).*
-      *Result:* —
+- [x] **2b.10 [HUMAN]** **Approve commit** *(double-approval gate).*
+      *Result:* Approved ("proceed").
 
-- [ ] **2b.11 [AI]** Pre-commit triage + commit `green:`. Report hash.
-      *Result:* —
+- [x] **2b.11 [AI]** Pre-commit triage + commit `green:`. Report hash.
+      *Result:* `e683795` — "green: Slice 2b — centre-relative distance search and map positioning"
 
 ---
 
@@ -228,7 +227,7 @@ search re-fires with that star's coordinates as origin.
 Goal: test the three star endpoints via `app.request()` against real Meridian data.
 Confirm the G-006 regression is covered at the HTTP level.
 
-- [ ] **3.1 [AI]** Write `server/src/routes/stars.http.test.ts`.
+- [x] **3.1 [AI]** Write `server/src/routes/stars.http.test.ts`.
       `beforeAll`: import and call `buildIndex()`.
 
       Tests to include:
@@ -245,21 +244,23 @@ Confirm the G-006 regression is covered at the HTTP level.
       | System not found | `GET /api/stars/AAAAAAAA-0000-0000-0000-000000000000` | status 404 |
       | Missing name param | `GET /api/stars/by-name` | status 400 |
 
-      *Result:* —
+      *Result:* Written. 9 tests across three describe blocks. `beforeAll` calls `buildIndex()` with 60s timeout.
 
-- [ ] **3.2 [AI]** Run `pnpm test`. Confirm Slice 3 tests fail (expected — functions
+- [x] **3.2 [AI]** Run `pnpm test`. Confirm Slice 3 tests fail (expected — functions
       exist but tests may expose integration issues). Post failure summary.
-      *Result:* —
+      *Result:* All 9 new HTTP tests passed immediately — no failures. Total: 36 tests green
+      (26 server, 10 client). Step 3.3 N/A.
 
-- [ ] **3.3 [AI]** Fix any failures that are bugs (not test-setup issues). If a fix
+- [x] **3.3 [AI]** Fix any failures that are bugs (not test-setup issues). If a fix
       requires a new failing-test-first cycle, do so and note it.
-      *Result:* —
+      *Result:* N/A — no failures in step 3.2.
 
-- [ ] **3.4 [AI]** Run `pnpm test`. All tests green. Post output.
-      *Result:* —
+- [x] **3.4 [AI]** Run `pnpm test`. All tests green. Post output.
+      *Result:* 36/36 green. server: 26 passed (7.60s, includes buildIndex parquet scan).
+      client: 10 passed (179ms). packages/shared: no test files (0).
 
-- [ ] **3.5 [AI]** Post ready-for-review summary for Slice 3.
-      *Result:* —
+- [x] **3.5 [AI]** Post ready-for-review summary for Slice 3.
+      *Result:* Posted in chat (see below).
 
 - [ ] **3.6 [HUMAN]** Read the diff and test output.
       *Result:* —

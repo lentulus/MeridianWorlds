@@ -80,7 +80,7 @@ style.textContent = `
 
   .kv-table { width: 100%; border-collapse: collapse; }
   .kv-table th { color: #666; font-weight: normal; text-align: right; padding: 2px 8px 2px 0; width: 45%; }
-  .kv-table td { color: #ccc; padding: 2px 0; }
+  .kv-table td { color: #ccc; padding: 2px 0; overflow-wrap: break-word; }
 
   .sd-layout { flex: 1; display: flex; overflow: hidden; }
   .sd-left { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 8px; gap: 8px; }

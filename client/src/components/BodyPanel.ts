@@ -1,5 +1,13 @@
 import type { BodyDetail } from '@worlds/shared';
 
+// Escape HTML, render _ as space, and mark / as a preferred break point.
+function breakable(s: string): string {
+  return s
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/_/g, ' ')
+    .replace(/\//g, '/<wbr>');
+}
+
 export function renderBodyPanel(el: HTMLElement, body: BodyDetail | null) {
   if (!body) { el.innerHTML = '<p class="dim">Select a body</p>'; return; }
 
@@ -20,6 +28,6 @@ export function renderBodyPanel(el: HTMLElement, body: BodyDetail | null) {
 
   el.innerHTML = `
     <table class="kv-table">
-      ${rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('')}
+      ${rows.map(([k, v]) => `<tr><th>${k}</th><td>${breakable(v)}</td></tr>`).join('')}
     </table>`;
 }
