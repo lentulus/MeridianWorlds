@@ -46,10 +46,9 @@ export class StarMap {
 
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
-      // x_pc/y_pc/z_pc are stored in milliparsecs; divide to get parsecs
-      positions[i * 3]     = r.x_pc / 1000;
-      positions[i * 3 + 1] = r.y_pc / 1000;
-      positions[i * 3 + 2] = r.z_pc / 1000;
+      positions[i * 3]     = r.x_pc;
+      positions[i * 3 + 1] = r.y_pc;
+      positions[i * 3 + 2] = r.z_pc;
 
       const col = spectralColour(r.primary_spectral);
       colors[i * 3]     = col.r;

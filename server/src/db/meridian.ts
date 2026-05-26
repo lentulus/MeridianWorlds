@@ -219,13 +219,19 @@ export async function searchStars(params: StarListParams): Promise<{ total: numb
       luminosity_sol:  star?.luminosity_sol ?? 0,
       hz_eligible:     star?.hz_eligible    ?? false,
       body_count:      countMap.get(e.system_id) ?? 0,
-      x_pc:            e.x_mpc,
-      y_pc:            e.y_mpc,
-      z_pc:            e.z_mpc,
+      x_pc:            mpcToPc(e.x_mpc),
+      y_pc:            mpcToPc(e.y_mpc),
+      z_pc:            mpcToPc(e.z_mpc),
     };
   });
 
-  return { total, rows };
+  // G-006: when spectral/hz filters are active, total reflects the filtered
+  // page count — a full cross-page scan would require querying all sectors.
+  const filteredTotal = (params.spectral != null || params.hz_eligible != null)
+    ? rows.length
+    : total;
+
+  return { total: filteredTotal, rows };
 }
 
 // ── System detail ────────────────────────────────────────────────────────────
@@ -284,7 +290,6 @@ export async function getSystem(systemId: string): Promise<SystemDetail | null> 
     star_id:      b.star_id,
     body_type:    b.body_type,
     in_hz:        b.in_hz,
-    mass_km:      b.mass_kg,
     mass_kg:      b.mass_kg,
     size_km:      b.size_km,
     orbit_au:     b.orbit_primary_au,
