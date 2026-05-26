@@ -51,6 +51,12 @@ function sectorFile(type: string, x: number, y: number, z: number): string {
   return row.file_path;
 }
 
+// ── Pure math helpers ────────────────────────────────────────────────────────
+
+export function mpcToPc(mpc: number): number {
+  return mpc / 1000;
+}
+
 // ── Named-system startup index ───────────────────────────────────────────────
 
 export interface IndexEntry {
@@ -105,9 +111,11 @@ interface StarRow {
 }
 interface BodyCountRow { system_id: string; body_count: string; }
 
-export async function searchStars(params: StarListParams): Promise<{ total: number; rows: StarListRow[] }> {
-  // Filter index by name and distance first (instant).
-  let candidates = [...nameIndex.values()];
+export function filterAndPage(
+  entries: IndexEntry[],
+  params: StarListParams,
+): { total: number; page: IndexEntry[] } {
+  let candidates = [...entries];
 
   if (params.name) {
     const q = params.name.toLowerCase();
@@ -122,13 +130,11 @@ export async function searchStars(params: StarListParams): Promise<{ total: numb
 
   const total = candidates.length;
 
-  // Sort before paginating.
   const sort = params.sort ?? 'dist_pc';
   const dir  = params.dir  ?? 'asc';
   candidates.sort((a, b) => {
-    let va: number | string, vb: number | string;
-    if (sort === 'name')    { va = a.name;    vb = b.name; }
-    else                    { va = a.dist_pc; vb = b.dist_pc; }
+    const va = sort === 'name' ? a.name    : a.dist_pc;
+    const vb = sort === 'name' ? b.name    : b.dist_pc;
     if (va < vb) return dir === 'asc' ? -1 : 1;
     if (va > vb) return dir === 'asc' ?  1 : -1;
     return 0;
@@ -137,6 +143,12 @@ export async function searchStars(params: StarListParams): Promise<{ total: numb
   const limit  = Math.min(params.limit  ?? 100, 500);
   const offset = params.offset ?? 0;
   const page   = candidates.slice(offset, offset + limit);
+
+  return { total, page };
+}
+
+export async function searchStars(params: StarListParams): Promise<{ total: number; rows: StarListRow[] }> {
+  const { total, page } = filterAndPage([...nameIndex.values()], params);
 
   if (page.length === 0) return { total, rows: [] };
 

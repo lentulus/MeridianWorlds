@@ -108,7 +108,7 @@ export class StarMap {
   }
 }
 
-function spectralColour(spectral: string): { r: number; g: number; b: number } {
+export function spectralColour(spectral: string): { r: number; g: number; b: number } {
   const s = spectral[0]?.toUpperCase() ?? '?';
   switch (s) {
     case 'O': return { r: 0.6, g: 0.7,  b: 1.0  };
