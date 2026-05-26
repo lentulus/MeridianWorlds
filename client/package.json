@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@worlds/shared": "workspace:*",
@@ -13,7 +15,10 @@
   },
   "devDependencies": {
     "@types/three": "^0.175.0",
+    "@vitest/coverage-v8": "^4.1.7",
+    "fast-check": "^4.8.0",
     "typescript": "^5.8.3",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^4.1.7"
   }
 }

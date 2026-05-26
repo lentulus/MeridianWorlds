@@ -3,5 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "main": "src/types.ts",
-  "types": "src/types.ts"
+  "types": "src/types.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.7"
+  }
 }
