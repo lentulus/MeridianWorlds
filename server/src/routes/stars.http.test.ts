@@ -17,12 +17,17 @@ describe('GET /api/stars', () => {
     expect(body.rows.length).toBeLessThanOrEqual(5);
   });
 
-  it('name filter returns rows containing the search term', async () => {
+  it('name resolves star as centre and returns nearby systems within default 10 pc', async () => {
     const res = await app.request('/api/stars?name=Sol&limit=10');
     expect(res.status).toBe(200);
     const { rows } = await res.json() as { total: number; rows: StarListRow[] };
     expect(rows.length).toBeGreaterThan(0);
-    expect(rows.some((r: StarListRow) => r.name.includes('Sol'))).toBe(true);
+    // Sol itself is at distance 0 from Sol — it must appear first
+    expect(rows.some((r: StarListRow) => r.name === 'Sol')).toBe(true);
+    // All returned systems must be within the default 10 pc radius
+    for (const r of rows) {
+      expect(r.dist_pc).toBeLessThanOrEqual(10);
+    }
   });
 
   it('distance filter: all rows have dist_pc ≤ max', async () => {

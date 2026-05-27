@@ -26,6 +26,19 @@ stars.get('/', async (c) => {
     center_z_pc:  q('center_z_pc') ? Number(q('center_z_pc')) : undefined,
   };
 
+  // Name is a navigation target, not a text filter.
+  // If name given without explicit centre, resolve it to coords and use as centre.
+  if (params.name && params.center_x_pc == null) {
+    const entry = await findByName(params.name);
+    if (!entry) return c.json({ total: 0, rows: [] });
+    params.center_x_pc = entry.x_mpc / 1000;
+    params.center_y_pc = entry.y_mpc / 1000;
+    params.center_z_pc = entry.z_mpc / 1000;
+    params.name = undefined;
+  }
+  // Always default to 10 pc when no explicit distance is given.
+  if (params.dist_max_pc == null) params.dist_max_pc = 10;
+
   try {
     const result = await searchStars(params);
     return c.json(result);
@@ -40,7 +53,7 @@ stars.get('/by-name', async (c) => {
   const name = c.req.query('name')?.trim();
   if (!name) return c.json({ error: 'name required' }, 400);
 
-  const entry = findByName(name);
+  const entry = await findByName(name);
   if (!entry) return c.json({ error: `System not found: ${name}` }, 404);
 
   return c.redirect(`/api/stars/${entry.system_id}`);

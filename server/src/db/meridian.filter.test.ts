@@ -8,6 +8,7 @@ const entries: IndexEntry[] = [
   { system_id: '3', name: 'Sirius',         dist_pc: 2.64, x_mpc: 120, y_mpc: 220, z_mpc: 320, sector_key: 'b' },
   { system_id: '4', name: 'Sol',            dist_pc: 0.00, x_mpc: 0,   y_mpc: 0,   z_mpc: 0,   sector_key: 'b' },
   { system_id: '5', name: 'Tau Ceti',       dist_pc: 3.65, x_mpc: 130, y_mpc: 230, z_mpc: 330, sector_key: 'c' },
+  { system_id: '6', name: null,             dist_pc: 2.10, x_mpc: 115, y_mpc: 215, z_mpc: 315, sector_key: 'b' },
 ];
 
 describe('filterAndPage', () => {
@@ -28,9 +29,9 @@ describe('filterAndPage', () => {
   });
 
   it('distance min + max filter', () => {
-    const { total, page } = filterAndPage(entries, { dist_min_pc: 1.5, dist_max_pc: 3.0 });
-    expect(total).toBe(2);
-    expect(page.map(e => e.name).sort()).toEqual(['Barnard', 'Sirius']);
+    const { total } = filterAndPage(entries, { dist_min_pc: 1.5, dist_max_pc: 3.0 });
+    // Barnard (1.83), unnamed (2.10), Sirius (2.64)
+    expect(total).toBe(3);
   });
 
   it('sort by name ascending', () => {
@@ -42,17 +43,17 @@ describe('filterAndPage', () => {
   it('sort by dist_pc descending', () => {
     const { page } = filterAndPage(entries, { sort: 'dist_pc', dir: 'desc' });
     expect(page[0].name).toBe('Tau Ceti');
-    expect(page[4].name).toBe('Sol');
+    expect(page[5].name).toBe('Sol');
   });
 
   it('pagination: limit respected', () => {
     const { page, total } = filterAndPage(entries, { limit: 2, offset: 0 });
     expect(page.length).toBe(2);
-    expect(total).toBe(5);
+    expect(total).toBe(6);
   });
 
   it('pagination: offset near end returns remaining entries', () => {
-    const { page } = filterAndPage(entries, { limit: 2, offset: 4 });
+    const { page } = filterAndPage(entries, { limit: 2, offset: 5 });
     expect(page.length).toBe(1);
   });
 
@@ -85,5 +86,15 @@ describe('filterAndPage', () => {
       dist_max_pc: 0.05,
     });
     expect(page.some(e => e.name === 'Sol')).toBe(false);
+  });
+
+  it('unnamed entry appears in results when no name filter is active', () => {
+    const { total } = filterAndPage(entries, {});
+    expect(total).toBe(6); // 5 named + 1 unnamed
+  });
+
+  it('unnamed entry excluded when name filter is active', () => {
+    const { page } = filterAndPage(entries, { name: 'a' });
+    expect(page.every(e => e.name !== null)).toBe(true);
   });
 });

@@ -12,7 +12,7 @@ export function StarListView(container: HTMLElement) {
   container.innerHTML = `
     <div class="toolbar">
       <label>Name <input id="sl-name" type="text" placeholder="Sol…"></label>
-      <label>Max dist (pc) <input id="sl-dist" type="number" min="0" step="1" value="30"></label>
+      <label>Max dist (pc) <input id="sl-dist" type="number" min="0" step="1" value="10"></label>
       <label>Spectral <input id="sl-spectral" type="text" placeholder="G…" style="width:4em"></label>
       <label>HZ <select id="sl-hz"><option value="">Any</option><option value="true">Yes</option><option value="false">No</option></select></label>
       <label>Centre <input id="sl-centre" type="text" placeholder="Sol…"></label>

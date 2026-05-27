@@ -22,8 +22,16 @@ function run(sql: string): Promise<void> {
 
 function query<T>(sql: string, ...params: unknown[]): Promise<T[]> {
   return new Promise((resolve, reject) =>
-    conn.all(sql, ...params, (err: Error | null, rows: T[]) =>
-      err ? reject(err) : resolve(rows)));
+    conn.all(sql, ...params, (err: Error | null, rows: any) => {
+      if (err) {
+        const e = err as Error & { code?: string; errorType?: string };
+        if (e.code === 'DUCKDB_NODEJS_ERROR' && e.errorType === 'Parser') {
+          console.error('[DuckDB Parser Error] Query:\n', sql);
+        }
+        return reject(err);
+      }
+      resolve(rows as T[]);
+    }));
 }
 
 async function ensureSqlite(): Promise<void> {
@@ -64,11 +72,12 @@ function entryDist(e: IndexEntry, cx: number, cy: number, cz: number): number {
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-// ── Named-system startup index ───────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
+// Used by filterAndPage (utility / tests) and findByName return value.
 export interface IndexEntry {
   system_id: string;
-  name: string;
+  name: string | null;
   dist_pc: number;
   x_mpc: number;
   y_mpc: number;
@@ -76,39 +85,19 @@ export interface IndexEntry {
   sector_key: string;
 }
 
-// Lower-cased name → entry
-const nameIndex = new Map<string, IndexEntry>();
-let indexReady = false;
-
 interface RawSystemRow {
   system_id: string;
-  primary_name: string;
+  primary_name: string | null;
   dist_pc: number;
   x: string; y: string; z: string;
 }
 
+let indexReady = false;
+
+// No pre-loading: all star queries hit DuckDB directly.
 export async function buildIndex(): Promise<void> {
-  console.log('Building named-system index…');
-  const rows = await query<RawSystemRow>(
-    `SELECT system_id::VARCHAR AS system_id, primary_name,
-            dist_pc, x_mpc::VARCHAR AS x, y_mpc::VARCHAR AS y, z_mpc::VARCHAR AS z
-     FROM read_parquet('${DATA}/systems/*.parquet')
-     WHERE primary_name IS NOT NULL`
-  );
-  for (const r of rows) {
-    const x = Number(r.x), y = Number(r.y), z = Number(r.z);
-    const sector = sectorFile('bodies', x, y, z)
-      .replace('bodies/', '').replace('.parquet', '');
-    nameIndex.set(r.primary_name.toLowerCase(), {
-      system_id: r.system_id,
-      name: r.primary_name,
-      dist_pc: r.dist_pc,
-      x_mpc: x, y_mpc: y, z_mpc: z,
-      sector_key: sector,
-    });
-  }
   indexReady = true;
-  console.log(`Index built: ${nameIndex.size} named systems`);
+  console.log(`Meridian ready. Data: ${DATA}`);
 }
 
 // ── Star List ────────────────────────────────────────────────────────────────
@@ -132,7 +121,8 @@ export function filterAndPage(
 
   if (params.name) {
     const q = params.name.toLowerCase();
-    candidates = candidates.filter(e => e.name.toLowerCase().includes(q));
+    // Unnamed entries (name === null) are excluded when a name filter is active.
+    candidates = candidates.filter(e => e.name != null && e.name.toLowerCase().includes(q));
   }
   if (params.dist_min_pc != null) {
     candidates = candidates.filter(e => dist(e) >= params.dist_min_pc!);
@@ -146,8 +136,9 @@ export function filterAndPage(
   const sort = params.sort ?? 'dist_pc';
   const dir  = params.dir  ?? 'asc';
   candidates.sort((a, b) => {
-    const va = sort === 'name' ? a.name : dist(a);
-    const vb = sort === 'name' ? b.name : dist(b);
+    // Null names sort last regardless of direction.
+    const va = sort === 'name' ? (a.name ?? '￿') : dist(a);
+    const vb = sort === 'name' ? (b.name ?? '￿') : dist(b);
     if (va < vb) return dir === 'asc' ? -1 : 1;
     if (va > vb) return dir === 'asc' ?  1 : -1;
     return 0;
@@ -161,43 +152,92 @@ export function filterAndPage(
 }
 
 export async function searchStars(params: StarListParams): Promise<{ total: number; rows: StarListRow[] }> {
-  const { total, page } = filterAndPage([...nameIndex.values()], params);
+  const cx = params.center_x_pc;
+  const cy = params.center_y_pc;
+  const cz = params.center_z_pc;
+  const hasCentre = cx != null && cy != null && cz != null;
 
-  if (page.length === 0) return { total, rows: [] };
+  // Build WHERE clause dynamically
+  const conditions: string[] = [];
+  const qp: (string | number)[] = [];
 
-  // Collect the unique sector files needed for this page.
-  const bySector = new Map<string, IndexEntry[]>();
-  for (const e of page) {
-    const list = bySector.get(e.sector_key) ?? [];
-    list.push(e);
-    bySector.set(e.sector_key, list);
+  if (hasCentre) {
+    const d = `SQRT(POW(x_mpc/1000.0-?,2)+POW(y_mpc/1000.0-?,2)+POW(z_mpc/1000.0-?,2))`;
+    if (params.dist_max_pc != null) { conditions.push(`${d}<=?`); qp.push(cx!, cy!, cz!, params.dist_max_pc); }
+    if (params.dist_min_pc != null) { conditions.push(`${d}>=?`); qp.push(cx!, cy!, cz!, params.dist_min_pc); }
+  } else {
+    if (params.dist_max_pc != null) { conditions.push('dist_pc<=?'); qp.push(params.dist_max_pc); }
+    if (params.dist_min_pc != null) { conditions.push('dist_pc>=?'); qp.push(params.dist_min_pc); }
+  }
+  if (params.name) {
+    conditions.push('LOWER(primary_name) LIKE ?');
+    qp.push(`%${params.name.toLowerCase()}%`);
   }
 
-  // For each sector, fetch star data and body counts.
+  const WHERE = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const FROM  = `FROM read_parquet('${DATA}/systems/*.parquet')`;
+
+  // ORDER BY: centre-relative distance when centre given, otherwise dist_pc or name
+  let orderExpr: string;
+  if (params.sort === 'name') {
+    orderExpr = 'primary_name';
+  } else if (hasCentre) {
+    // cx/cy/cz are TypeScript numbers — safe to interpolate
+    orderExpr = `SQRT(POW(x_mpc/1000.0-(${cx}),2)+POW(y_mpc/1000.0-(${cy}),2)+POW(z_mpc/1000.0-(${cz}),2))`;
+  } else {
+    orderExpr = 'dist_pc';
+  }
+  const orderDir = params.dir === 'desc' ? 'DESC' : 'ASC';
+  const limit  = Math.min(params.limit  ?? 100, 500);
+  const offset = params.offset ?? 0;
+
+  // Single DuckDB query returns page rows + window count
+  interface PageRow {
+    system_id: string; primary_name: string | null; dist_pc: number;
+    x: string; y: string; z: string; total_count: string;
+  }
+  const pageRows = await query<PageRow>(
+    `SELECT system_id::VARCHAR AS system_id, primary_name, dist_pc,
+            x_mpc::VARCHAR AS x, y_mpc::VARCHAR AS y, z_mpc::VARCHAR AS z,
+            COUNT(*) OVER () AS total_count
+     ${FROM} ${WHERE}
+     ORDER BY ${orderExpr} ${orderDir} NULLS LAST
+     LIMIT ${limit} OFFSET ${offset}`,
+    ...qp
+  );
+
+  const total = pageRows.length > 0 ? Number(pageRows[0].total_count) : 0;
+  if (pageRows.length === 0) return { total: 0, rows: [] };
+
+  // Group by sector (synchronous manifest lookup per row — fast SQLite)
+  const bySector = new Map<string, PageRow[]>();
+  for (const r of pageRows) {
+    const x = Number(r.x), y = Number(r.y), z = Number(r.z);
+    const sk = sectorFile('bodies', x, y, z).replace('bodies/', '').replace('.parquet', '');
+    const list = bySector.get(sk) ?? [];
+    list.push(r);
+    bySector.set(sk, list);
+  }
+
   const starMap  = new Map<string, StarRow>();
   const countMap = new Map<string, number>();
 
-  await Promise.all([...bySector.entries()].map(async ([sk, entries]) => {
-    const ids = entries.map(e => `'${e.system_id}'`).join(',');
-    const starsFile = `stars/${sk}.parquet`;
-    const bodiesFile = `bodies/${sk}.parquet`;
-
+  await Promise.all([...bySector.entries()].map(async ([sk, sRows]) => {
+    const ids = sRows.map(r => `'${r.system_id}'`).join(',');
     const [stars, counts] = await Promise.all([
       query<StarRow>(
         `SELECT system_id::VARCHAR AS system_id, spectral, luminosity_sol, hz_eligible
-         FROM read_parquet('${DATA}/${starsFile}')
+         FROM read_parquet('${DATA}/stars/${sk}.parquet')
          WHERE system_id::VARCHAR IN (${ids})
          ORDER BY luminosity_sol DESC`
       ),
       query<BodyCountRow>(
         `SELECT system_id::VARCHAR AS system_id, COUNT(*)::VARCHAR AS body_count
-         FROM read_parquet('${DATA}/${bodiesFile}')
+         FROM read_parquet('${DATA}/bodies/${sk}.parquet')
          WHERE system_id::VARCHAR IN (${ids})
          GROUP BY system_id`
       ),
     ]);
-
-    // Keep only the primary (brightest) star per system.
     const seen = new Set<string>();
     for (const s of stars) {
       if (!seen.has(s.system_id)) { starMap.set(s.system_id, s); seen.add(s.system_id); }
@@ -205,51 +245,39 @@ export async function searchStars(params: StarListParams): Promise<{ total: numb
     for (const c of counts) countMap.set(c.system_id, Number(c.body_count));
   }));
 
-  // Apply spectral / hz_eligible filters now that we have star data.
-  let filtered = page;
+  // Spectral / hz_eligible post-filters (applied after fetching star data)
+  let filtered = pageRows;
   if (params.spectral) {
     const prefix = params.spectral.toUpperCase();
-    filtered = filtered.filter(e => {
-      const s = starMap.get(e.system_id);
-      return s && s.spectral.startsWith(prefix);
-    });
+    filtered = filtered.filter(r => { const s = starMap.get(r.system_id); return s && s.spectral.startsWith(prefix); });
   }
   if (params.hz_eligible != null) {
-    filtered = filtered.filter(e => {
-      const s = starMap.get(e.system_id);
-      return s && s.hz_eligible === params.hz_eligible;
-    });
+    filtered = filtered.filter(r => { const s = starMap.get(r.system_id); return s && s.hz_eligible === params.hz_eligible; });
   }
 
-  const scx = params.center_x_pc;
-  const scy = params.center_y_pc;
-  const scz = params.center_z_pc;
-  const hasCentre = scx != null && scy != null && scz != null;
-
-  const rows: StarListRow[] = filtered.map(e => {
-    const star = starMap.get(e.system_id);
-    const rawDist = hasCentre ? entryDist(e, scx!, scy!, scz!) : e.dist_pc;
+  const rows: StarListRow[] = filtered.map(r => {
+    const star = starMap.get(r.system_id);
+    const xMpc = Number(r.x), yMpc = Number(r.y), zMpc = Number(r.z);
+    const rawDist = hasCentre
+      ? Math.sqrt(Math.pow(mpcToPc(xMpc) - cx!, 2) + Math.pow(mpcToPc(yMpc) - cy!, 2) + Math.pow(mpcToPc(zMpc) - cz!, 2))
+      : r.dist_pc;
     return {
-      system_id:       e.system_id,
-      name:            e.name,
-      dist_pc:         Math.round(rawDist * 100) / 100,
-      age_gyr:         null,
-      primary_spectral: star?.spectral  ?? '?',
-      luminosity_sol:  star?.luminosity_sol ?? 0,
-      hz_eligible:     star?.hz_eligible    ?? false,
-      body_count:      countMap.get(e.system_id) ?? 0,
-      x_pc:            mpcToPc(e.x_mpc),
-      y_pc:            mpcToPc(e.y_mpc),
-      z_pc:            mpcToPc(e.z_mpc),
+      system_id:        r.system_id,
+      name:             r.primary_name ?? `(${mpcToPc(xMpc).toFixed(2)}, ${mpcToPc(yMpc).toFixed(2)}, ${mpcToPc(zMpc).toFixed(2)}) pc`,
+      dist_pc:          Math.round(rawDist * 100) / 100,
+      age_gyr:          null,
+      primary_spectral: star?.spectral       ?? '?',
+      luminosity_sol:   star?.luminosity_sol ?? 0,
+      hz_eligible:      star?.hz_eligible    ?? false,
+      body_count:       countMap.get(r.system_id) ?? 0,
+      x_pc:             mpcToPc(xMpc),
+      y_pc:             mpcToPc(yMpc),
+      z_pc:             mpcToPc(zMpc),
     };
   });
 
-  // G-006: when spectral/hz filters are active, total reflects the filtered
-  // page count — a full cross-page scan would require querying all sectors.
-  const filteredTotal = (params.spectral != null || params.hz_eligible != null)
-    ? rows.length
-    : total;
-
+  // G-006: spectral/hz total is page count — full cross-sector scan not feasible
+  const filteredTotal = (params.spectral != null || params.hz_eligible != null) ? rows.length : total;
   return { total: filteredTotal, rows };
 }
 
@@ -265,11 +293,21 @@ interface RawBody {
 }
 
 export async function getSystem(systemId: string): Promise<SystemDetail | null> {
-  // Find in index.
-  const entry = [...nameIndex.values()].find(e => e.system_id === systemId);
-  if (!entry) return null;
+  const sysRows = await query<RawSystemRow>(
+    `SELECT system_id::VARCHAR AS system_id, primary_name, dist_pc,
+            x_mpc::VARCHAR AS x, y_mpc::VARCHAR AS y, z_mpc::VARCHAR AS z
+     FROM read_parquet('${DATA}/systems/*.parquet')
+     WHERE system_id::VARCHAR = ?
+     LIMIT 1`,
+    systemId
+  );
+  if (!sysRows.length) return null;
+  const sr = sysRows[0];
+  const x = Number(sr.x), y = Number(sr.y), z = Number(sr.z);
+  const sector_key = sectorFile('bodies', x, y, z).replace('bodies/', '').replace('.parquet', '');
+  const displayName = sr.primary_name ??
+    `(${mpcToPc(x).toFixed(2)}, ${mpcToPc(y).toFixed(2)}, ${mpcToPc(z).toFixed(2)}) pc`;
 
-  const { x_mpc: x, y_mpc: y, z_mpc: z, sector_key } = entry;
   const starsFile  = `stars/${sector_key}.parquet`;
   const bodiesFile = `bodies/${sector_key}.parquet`;
   const physFile   = sectorFile('physical', x, y, z);
@@ -323,17 +361,29 @@ export async function getSystem(systemId: string): Promise<SystemDetail | null> 
   }));
 
   return {
-    system_id: entry.system_id,
-    name:      entry.name,
-    dist_pc:   Math.round(entry.dist_pc * 100) / 100,
+    system_id: sr.system_id,
+    name:      displayName,
+    dist_pc:   Math.round(sr.dist_pc * 100) / 100,
     age_gyr:   null,
     stars,
     bodies,
   };
 }
 
-export function findByName(name: string): IndexEntry | undefined {
-  return nameIndex.get(name.toLowerCase());
+export async function findByName(name: string): Promise<IndexEntry | undefined> {
+  const rows = await query<RawSystemRow>(
+    `SELECT system_id::VARCHAR AS system_id, primary_name, dist_pc,
+            x_mpc::VARCHAR AS x, y_mpc::VARCHAR AS y, z_mpc::VARCHAR AS z
+     FROM read_parquet('${DATA}/systems/*.parquet')
+     WHERE LOWER(primary_name) = ?
+     LIMIT 1`,
+    name.toLowerCase()
+  );
+  if (!rows.length) return undefined;
+  const r = rows[0];
+  const x = Number(r.x), y = Number(r.y), z = Number(r.z);
+  const sector_key = sectorFile('bodies', x, y, z).replace('bodies/', '').replace('.parquet', '');
+  return { system_id: r.system_id, name: r.primary_name ?? null, dist_pc: r.dist_pc, x_mpc: x, y_mpc: y, z_mpc: z, sector_key };
 }
 
 export { indexReady };
