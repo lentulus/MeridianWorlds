@@ -90,6 +90,7 @@ export interface SlotDetail {
   system_name: string | null;
   category: string | null;
   detail: string | null;
+  power_points: number | null;
 }
 
 export interface ShipListRow {

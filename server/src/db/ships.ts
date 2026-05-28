@@ -113,27 +113,30 @@ export function getShip(shipId: number): ShipDesign | null {
   const slots: SlotDetail[] = (db.prepare(`
     SELECT ss.hull_section, ss.slot_number, ss.slot_to, ss.is_core,
            ss.is_high_energy, ss.system_id, c.name AS system_name,
-           c.category, ss.detail
+           c.category, ss.detail,
+           (SELECT st.power_points FROM system_sm_stats st
+            WHERE st.system_id = ss.system_id AND st.sm = ?
+            LIMIT 1) AS power_points
     FROM ship_system_slots ss
     LEFT JOIN ship_system_catalog c ON c.system_id = ss.system_id
     WHERE ss.ship_id = ?
     ORDER BY ss.hull_section, COALESCE(ss.slot_number, 99)
-  `).all(shipId) as any).map((r: any) => ({
-    hull_section:  r.hull_section,
-    slot_number:   r.slot_number,
-    slot_to:       r.slot_to,
-    is_core:       Boolean(r.is_core),
+  `).all(ship.sm, shipId) as any).map((r: any) => ({
+    hull_section:   r.hull_section,
+    slot_number:    r.slot_number,
+    slot_to:        r.slot_to,
+    is_core:        Boolean(r.is_core),
     is_high_energy: Boolean(r.is_high_energy),
-    system_id:     r.system_id,
-    system_name:   r.system_name,
-    category:      r.category,
-    detail:        r.detail,
+    system_id:      r.system_id,
+    system_name:    r.system_name,
+    category:       r.category,
+    detail:         r.detail,
+    power_points:   r.power_points ?? null,
   }));
 
-  // Derive power budget.
   const ppAvail = slots
-    .filter(s => s.system_name?.toLowerCase().includes('power plant'))
-    .reduce((sum, s) => sum + 0, 0); // placeholder until stat join
+    .filter(s => s.category === 'Power')
+    .reduce((sum, s) => sum + (s.power_points ?? 0), 0);
 
   return {
     ship_id:          ship.ship_id,
