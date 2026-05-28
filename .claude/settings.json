@@ -6,7 +6,19 @@
       "Bash(pnpm test *)",
       "Bash(git -C /Users/lentulus/projects/worlds add package.json pnpm-lock.yaml server/package.json server/vitest.config.ts server/src/app.ts server/src/main.ts client/package.json client/vitest.config.ts packages/shared/package.json packages/shared/vitest.config.ts)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(open /Users/lentulus/projects/worlds/supporting/docs/Design/Worlds/ShipDesignMVP_Prototype.html)",
+      "Bash(sqlite3 /Users/lentulus/databases/world.db \"SELECT COUNT\\(*\\) FROM ship_system_slots;\")",
+      "Bash(sqlite3 /Users/lentulus/databases/world.db)",
+      "Bash(sqlite3 /Users/lentulus/databases/world.db \"PRAGMA foreign_key_check;\")",
+      "Bash(sqlite3 /Users/lentulus/databases/world.db \"SELECT COUNT\\(*\\) FROM ships WHERE description IS NOT NULL OR image_path IS NOT NULL;\")",
+      "Bash(sqlite3 /Users/lentulus/databases/world.db \"SELECT sql FROM sqlite_master WHERE name = 'ship_system_slots';\")",
+      "Bash(sqlite3 /Users/lentulus/databases/world.db \"SELECT sql FROM sqlite_master WHERE name = 'ships' AND type = 'table';\")",
+      "Bash(git -C /Users/lentulus/projects/worlds add supporting/sql/migrations/ supporting/sql/schema.sql supporting/sql/seed.sql supporting/docs/HANDOVER.md supporting/docs/Design/Worlds/ShipDesignMVP_Plan.md supporting/docs/Design/Worlds/ShipDesignMVP_Checklist.md supporting/docs/Design/Worlds/ShipDesignMVP_UI.md supporting/docs/Design/Worlds/ShipDesignMVP_Prototype.html)",
+      "Bash(git -C /Users/lentulus/projects/worlds commit -m ' *)",
+      "Bash(sqlite3 /Users/lentulus/databases/world.db ' *)",
+      "Bash(git -C /Users/lentulus/projects/worlds add packages/shared/src/types.ts server/src/db/ships.ts server/src/db/ships.test.ts)",
+      "Bash(git -C /Users/lentulus/projects/worlds add client/src/components/SlotGrid.ts client/src/main.ts)"
     ]
   }
 }
