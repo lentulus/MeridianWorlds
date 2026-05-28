@@ -119,6 +119,14 @@ Goal: Whenever slots change, the server recomputes all derivable stats and
 returns them with `getShip()`. The stats panel shows derived values. Derivation
 rules from SS1 pp. 34–35; see plan for full formulas.
 
+- [ ] **4.0 [AI]** Improve the "add detail" prompt direction. Currently the dialog only shows
+      `Detail for "<name>":`. Replace with a multi-line message that includes:
+      - The slot position (section + slot number or "core")
+      - What the field is for ("short label shown on the slot row")
+      - A format hint derived from the system category
+        (e.g. armor → `dDR 35`; drive → `3G`; power → `2 PP`; cargo → `50 tons`)
+      Keep using `window.prompt()` — do not introduce a new UI component yet.
+
 Stats to derive:
 
 | Stat | Source |
