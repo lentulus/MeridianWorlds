@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ship Design — Layout Prototype</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+      font-size: 13px;
+      background: #0d0d0d;
+      color: #c8c8c8;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* ── Shell ─────────────────────────────────────────────── */
+    .app {
+      display: grid;
+      grid-template-columns: 220px 1fr 290px;
+      height: 100dvh;
+    }
+
+    .panel {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #1e1e1e;
+      overflow: hidden;
+    }
+    .panel:last-child { border-right: none; }
+
+    .panel-header {
+      flex-shrink: 0;
+      padding: 7px 12px;
+      background: #111;
+      border-bottom: 1px solid #1e1e1e;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #555;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-header .ship-name { color: #9ab; font-weight: 400; letter-spacing: 0; font-size: 12px; text-transform: none; }
+
+    .scroll { overflow-y: auto; flex: 1; }
+    .scroll::-webkit-scrollbar { width: 4px; }
+    .scroll::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
+
+    /* ── Left: Ship list ───────────────────────────────────── */
+    .filters {
+      flex-shrink: 0;
+      padding: 10px 12px;
+      border-bottom: 1px solid #1e1e1e;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .filter-label {
+      color: #555;
+      font-size: 11px;
+      width: 36px;
+      flex-shrink: 0;
+    }
+    .filter-row input[type=number] {
+      width: 42px;
+      background: #161616;
+      border: 1px solid #2a2a2a;
+      color: #c8c8c8;
+      padding: 3px 5px;
+      font: inherit;
+      font-size: 12px;
+      border-radius: 2px;
+    }
+    .filter-row input[type=text] {
+      flex: 1;
+      background: #161616;
+      border: 1px solid #2a2a2a;
+      color: #c8c8c8;
+      padding: 3px 5px;
+      font: inherit;
+      font-size: 12px;
+      border-radius: 2px;
+    }
+    .filter-row input[type=checkbox] { accent-color: #5a8a6a; }
+    .filter-row label { color: #888; font-size: 11px; display: flex; align-items: center; gap: 4px; }
+    .filter-row .range-sep { color: #444; }
+
+    .ship-list { padding: 4px 0; }
+    .ship-item {
+      padding: 6px 12px;
+      cursor: pointer;
+      color: #999;
+      border-left: 2px solid transparent;
+      line-height: 1.5;
+    }
+    .ship-item:hover { background: #141414; color: #c8c8c8; }
+    .ship-item.selected {
+      background: #131a1f;
+      color: #c8c8c8;
+      border-left-color: #4a7a9a;
+    }
+    .ship-item .ship-class { display: block; }
+    .ship-item .ship-meta { display: block; font-size: 11px; color: #555; }
+    .ship-item.selected .ship-meta { color: #4a7a9a; }
+
+    .panel-footer {
+      flex-shrink: 0;
+      padding: 10px 12px;
+      border-top: 1px solid #1e1e1e;
+    }
+    .btn {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      color: #aaa;
+      padding: 5px 10px;
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      border-radius: 2px;
+      width: 100%;
+    }
+    .btn:hover { background: #222; color: #c8c8c8; border-color: #3a3a3a; }
+    .btn-primary {
+      background: #1a2a1a;
+      border-color: #3a5a3a;
+      color: #8ab88a;
+    }
+    .btn-primary:hover { background: #1e321e; color: #aadaaa; }
+
+    /* ── Centre: Slot grid ─────────────────────────────────── */
+    .center-panel {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .slot-grid { padding: 12px 16px; }
+
+    .hull-section { margin-bottom: 16px; }
+    .hull-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #444;
+      margin-bottom: 4px;
+      padding-bottom: 3px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+
+    .slot-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 3px 0;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+    .slot-row:hover { background: #111; }
+    .slot-row.drop-target { background: #111a11; outline: 1px dashed #3a5a3a; }
+
+    .slot-num {
+      color: #444;
+      width: 24px;
+      flex-shrink: 0;
+      font-size: 11px;
+      text-align: right;
+    }
+    .slot-core .slot-num { color: #4a4a6a; }
+
+    .slot-name { flex: 1; color: #bbb; }
+    .slot-empty .slot-name { color: #333; font-style: italic; }
+    .slot-detail { color: #666; font-size: 11px; }
+    .slot-he { color: #8a6a3a; font-size: 10px; margin-left: 2px; }
+
+    /* ── Centre: Catalog ───────────────────────────────────── */
+    .catalog-section {
+      flex-shrink: 0;
+      border-top: 1px solid #1e1e1e;
+      display: flex;
+      flex-direction: column;
+      height: 210px;
+    }
+
+    .cat-filters {
+      flex-shrink: 0;
+      display: flex;
+      gap: 4px;
+      padding: 6px 10px;
+      border-bottom: 1px solid #1e1e1e;
+      flex-wrap: wrap;
+    }
+    .cat-btn {
+      background: #161616;
+      border: 1px solid #252525;
+      color: #666;
+      padding: 2px 8px;
+      font: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+    .cat-btn:hover { color: #aaa; border-color: #333; }
+    .cat-btn.active { background: #131a13; border-color: #3a5a3a; color: #8ab88a; }
+
+    .catalog-list { overflow-y: auto; flex: 1; padding: 4px 0; }
+    .catalog-item {
+      padding: 4px 14px;
+      color: #888;
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .catalog-item:hover { background: #111; color: #c8c8c8; }
+    .catalog-item:active { cursor: grabbing; }
+    .catalog-item .ci-drag { color: #333; font-size: 10px; }
+    .catalog-item .ci-he { color: #6a4a2a; font-size: 10px; }
+    .catalog-item.empty-marker { color: #444; border-top: 1px solid #1a1a1a; margin-top: 2px; padding-top: 6px; }
+    .catalog-item.empty-marker:hover { color: #888; }
+    .catalog-item.dim { color: #444; cursor: not-allowed; }
+    .catalog-item.dim .ci-name { text-decoration: line-through; }
+
+    /* ── Right: Stats ──────────────────────────────────────── */
+    .stats-panel { padding: 14px 14px 0; }
+
+    .ship-title { margin-bottom: 12px; }
+    .ship-title .title-class { font-size: 14px; color: #ddd; }
+    .ship-title .title-meta { font-size: 11px; color: #555; margin-top: 2px; }
+
+    .stat-group { margin-bottom: 14px; }
+    .stat-group-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #444;
+      margin-bottom: 6px;
+      padding-bottom: 3px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 2px 0;
+    }
+    .stat-key { color: #666; font-size: 11px; }
+    .stat-val { color: #c8c8c8; }
+    .stat-val.dim { color: #444; }
+    .stat-val.override { color: #c8c8c8; }
+    .stat-val.override::after { content: ' *'; color: #8a6a3a; font-size: 10px; }
+    .stat-sub { color: #555; font-size: 11px; padding-left: 10px; }
+
+    .pp-bar {
+      margin-top: 4px;
+      height: 4px;
+      background: #1a1a1a;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .pp-bar-fill {
+      height: 100%;
+      background: #3a6a4a;
+      border-radius: 2px;
+      transition: width 0.2s;
+    }
+    .pp-bar-fill.over { background: #8a3a3a; }
+
+    /* Override section */
+    .override-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 0;
+      cursor: pointer;
+      color: #555;
+      font-size: 11px;
+      border-top: 1px solid #1a1a1a;
+      user-select: none;
+      margin-top: 4px;
+    }
+    .override-toggle:hover { color: #888; }
+    .override-toggle .arrow { font-size: 9px; transition: transform 0.15s; }
+    .override-toggle.open .arrow { transform: rotate(90deg); }
+
+    .override-body {
+      display: none;
+      padding: 8px 0;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .override-body.open { display: block; }
+
+    .override-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 3px 0;
+    }
+    .override-row label { color: #555; font-size: 11px; width: 80px; flex-shrink: 0; }
+    .override-row input {
+      width: 70px;
+      background: #161616;
+      border: 1px solid #252525;
+      color: #c8c8c8;
+      padding: 2px 6px;
+      font: inherit;
+      font-size: 12px;
+      border-radius: 2px;
+    }
+    .override-row input:focus { outline: none; border-color: #3a5a3a; }
+    .override-row .derived { color: #444; font-size: 11px; }
+
+    .override-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .btn-sm {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      color: #888;
+      padding: 3px 8px;
+      font: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+    .btn-sm:hover { color: #c8c8c8; border-color: #3a3a3a; }
+
+    /* Description */
+    .text-area-block {
+      margin-top: 14px;
+    }
+    .text-area-block label {
+      font-size: 10px;
+      color: #444;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .text-area-block textarea {
+      width: 100%;
+      background: #0d0d0d;
+      border: 1px solid #1e1e1e;
+      color: #888;
+      padding: 6px 8px;
+      font: inherit;
+      font-size: 12px;
+      border-radius: 2px;
+      resize: vertical;
+      height: 90px;
+      line-height: 1.6;
+    }
+    .text-area-block textarea:focus { outline: none; border-color: #2a2a2a; color: #c8c8c8; }
+
+    /* Image attachment */
+    .image-block {
+      margin-top: 14px;
+    }
+    .image-block label {
+      font-size: 10px;
+      color: #444;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .image-drop-zone {
+      border: 1px dashed #252525;
+      border-radius: 2px;
+      padding: 16px 12px;
+      text-align: center;
+      color: #444;
+      font-size: 11px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      position: relative;
+    }
+    .image-drop-zone:hover { border-color: #3a3a3a; color: #777; }
+    .image-drop-zone.has-image { padding: 0; border-style: solid; border-color: #1e1e1e; }
+    .image-drop-zone input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .image-drop-zone.has-image input[type=file] { display: none; }
+    .image-preview {
+      display: none;
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      border-radius: 2px;
+      display: block;
+    }
+    .image-drop-zone:not(.has-image) .image-preview { display: none; }
+    .image-drop-zone.has-image .image-preview { display: block; }
+    .image-drop-placeholder { line-height: 1.8; }
+    .image-drop-zone.has-image .image-drop-placeholder { display: none; }
+    .image-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .danger-zone { margin-top: 14px; }
+    .btn-danger {
+      background: transparent;
+      border: 1px solid #3a1a1a;
+      color: #6a3a3a;
+      padding: 4px 10px;
+      font: inherit;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+    .btn-danger:hover { background: #1a0a0a; color: #aa5a5a; border-color: #5a2a2a; }
+
+    /* Prototype label */
+    .proto-badge {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: #1a1a0a;
+      border: 1px solid #3a3a1a;
+      color: #6a6a3a;
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 2px;
+      pointer-events: none;
+      letter-spacing: 0.08em;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── LEFT: Ship list ───────────────────────────────────── -->
+  <div class="panel">
+    <div class="panel-header">Ships</div>
+
+    <div class="filters">
+      <div class="filter-row">
+        <span class="filter-label">TL</span>
+        <input type="number" value="7" min="0" max="12" title="TL min">
+        <span class="range-sep">–</span>
+        <input type="number" value="12" min="0" max="12" title="TL max">
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">SM</span>
+        <input type="number" placeholder="any" min="5" max="15" style="width:60px" title="SM">
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">Type</span>
+        <input type="text" placeholder="shuttle, freighter…">
+      </div>
+      <div class="filter-row">
+        <label><input type="checkbox"> Military only</label>
+      </div>
+    </div>
+
+    <div class="scroll">
+      <div class="ship-list">
+        <div class="ship-item">
+          <span class="ship-class">Antares-class Freighter</span>
+          <span class="ship-meta">SM+9  TL 9  Freighter</span>
+        </div>
+        <div class="ship-item">
+          <span class="ship-class">Falcon Scout</span>
+          <span class="ship-meta">SM+6  TL 10  Scout</span>
+        </div>
+        <div class="ship-item selected">
+          <span class="ship-class">Midnight Sun</span>
+          <span class="ship-meta">SM+7  TL 9  Shuttle</span>
+        </div>
+        <div class="ship-item">
+          <span class="ship-class">Star Flower</span>
+          <span class="ship-meta">SM+8  TL 11  Freighter</span>
+        </div>
+        <div class="ship-item">
+          <span class="ship-class">Valiant-class Patrol</span>
+          <span class="ship-meta">SM+8  TL 10  Military</span>
+        </div>
+        <div class="ship-item">
+          <span class="ship-class">Wren Light Shuttle</span>
+          <span class="ship-meta">SM+5  TL 9  Shuttle</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-footer">
+      <button class="btn btn-primary">+ New Ship</button>
+    </div>
+  </div>
+
+  <!-- ── CENTRE: Slot grid + catalog ──────────────────────── -->
+  <div class="panel center-panel">
+    <div class="panel-header">
+      Slot Grid
+      <span class="ship-name">Midnight Sun</span>
+    </div>
+
+    <div class="scroll slot-grid">
+
+      <div class="hull-section">
+        <div class="hull-label">Front Hull</div>
+
+        <div class="slot-row">
+          <span class="slot-num">[1]</span>
+          <span class="slot-name">Steel armor</span>
+          <span class="slot-detail">dDR 3</span>
+        </div>
+        <div class="slot-row">
+          <span class="slot-num">[2]</span>
+          <span class="slot-name">Control Room</span>
+          <span class="slot-detail">3 stations</span>
+        </div>
+        <div class="slot-row">
+          <span class="slot-num">[3]</span>
+          <span class="slot-name">Habitat</span>
+          <span class="slot-detail">8 cabins</span>
+        </div>
+        <div class="slot-row">
+          <span class="slot-num">[4]</span>
+          <span class="slot-name">Cargo Hold</span>
+          <span class="slot-detail">30 t</span>
+        </div>
+        <div class="slot-row">
+          <span class="slot-num">[5]</span>
+          <span class="slot-name">Cargo Hold</span>
+          <span class="slot-detail">30 t</span>
+        </div>
+        <div class="slot-row slot-empty drop-target">
+          <span class="slot-num">[6]</span>
+          <span class="slot-name">empty</span>
+        </div>
+        <div class="slot-row slot-core">
+          <span class="slot-num">[●]</span>
+          <span class="slot-name">Sickbay</span>
+          <span class="slot-detail">10 beds</span>
+        </div>
+      </div>
+
+      <div class="hull-section">
+        <div class="hull-label">Central Hull</div>
+
+        <div class="slot-row">
+          <span class="slot-num">[1]</span>
+          <span class="slot-name">Steel armor</span>
+          <span class="slot-detail">dDR 3</span>
+        </div>
+        <div class="slot-row">
+          <span class="slot-num">[2]</span>
+          <span class="slot-name">Cargo Hold</span>
+          <span class="slot-detail">30 t</span>
+        </div>
+        <div class="slot-row">
+          <span class="slot-num">[3]</span>
+          <span class="slot-name">Cargo Hold</span>
+          <span class="slot-detail">30 t</span>
+        </div>
+        <div class="slot-row">
+          <span class="slot-num">[4]</span>
+          <span class="slot-name">Fuel Tank</span>
+          <span class="slot-detail">15 t</span>
+        </div>
+        <div class="slot-row">
+          <span class="slot-num">[5]</span>
+          <span class="slot-name">Fuel Tank</span>
+          <span class="slot-detail">15 t</span>
+        </div>
+        <div class="slot-row slot-empty">
+          <span class="slot-num">[6]</span>
+          <span class="slot-name">empty</span>
+        </div>
+        <div class="slot-row slot-core">
+          <span class="slot-num">[●]</span>
+          <span class="slot-name">Fusion Reactor</span>
+          <span class="slot-detail">4 PP</span>
+        </div>
+      </div>
+
+      <div class="hull-section">
+        <div class="hull-label">Rear Hull</div>
+
+        <div class="slot-row">
+          <span class="slot-num">[1]</span>
+          <span class="slot-name">Steel armor</span>
+          <span class="slot-detail">dDR 3</span>
+        </div>
+        <div class="slot-row">
+          <span class="slot-num">[2]</span>
+          <span class="slot-name">Fusion Torch<span class="slot-he">[!]</span></span>
+          <span class="slot-detail">1 G</span>
+        </div>
+        <div class="slot-row">
+          <span class="slot-num">[3]</span>
+          <span class="slot-name">Fusion Torch<span class="slot-he">[!]</span></span>
+          <span class="slot-detail">1 G</span>
+        </div>
+        <div class="slot-row">
+          <span class="slot-num">[4]</span>
+          <span class="slot-name">Fusion Torch<span class="slot-he">[!]</span></span>
+          <span class="slot-detail">1 G</span>
+        </div>
+        <div class="slot-row slot-empty">
+          <span class="slot-num">[5]</span>
+          <span class="slot-name">empty</span>
+        </div>
+        <div class="slot-row">
+          <span class="slot-num">[6]</span>
+          <span class="slot-name">Engine Room</span>
+          <span class="slot-detail">2 crew</span>
+        </div>
+      </div>
+
+    </div><!-- /slot-grid -->
+
+    <!-- Catalog -->
+    <div class="catalog-section">
+      <div class="panel-header">Catalog</div>
+      <div class="cat-filters">
+        <button class="cat-btn active" onclick="catFilter(this)">Armor</button>
+        <button class="cat-btn" onclick="catFilter(this)">Power</button>
+        <button class="cat-btn" onclick="catFilter(this)">Drive</button>
+        <button class="cat-btn" onclick="catFilter(this)">Cargo</button>
+        <button class="cat-btn" onclick="catFilter(this)">Control</button>
+        <button class="cat-btn" onclick="catFilter(this)">Weapons</button>
+        <button class="cat-btn" onclick="catFilter(this)">Other</button>
+      </div>
+      <div class="catalog-list">
+        <div class="catalog-item"><span class="ci-drag">⠿</span><span class="ci-name">Ice armor</span></div>
+        <div class="catalog-item"><span class="ci-drag">⠿</span><span class="ci-name">Steel armor</span></div>
+        <div class="catalog-item"><span class="ci-drag">⠿</span><span class="ci-name">Light Alloy armor</span></div>
+        <div class="catalog-item"><span class="ci-drag">⠿</span><span class="ci-name">Metallic Laminate armor</span></div>
+        <div class="catalog-item"><span class="ci-drag">⠿</span><span class="ci-name">Adv. Metallic Laminate armor</span></div>
+        <div class="catalog-item dim"><span class="ci-drag">⠿</span><span class="ci-name">Nanocomposite armor</span><span style="color:#3a3a3a;font-size:10px;margin-left:auto">TL 10</span></div>
+        <div class="catalog-item dim"><span class="ci-drag">⠿</span><span class="ci-name">Diamondoid armor</span><span style="color:#3a3a3a;font-size:10px;margin-left:auto">TL 11</span></div>
+        <div class="catalog-item empty-marker"><span class="ci-drag">⠿</span><span class="ci-name" style="color:#555">── empty ── (clear slot)</span></div>
+      </div>
+    </div>
+
+  </div><!-- /center panel -->
+
+  <!-- ── RIGHT: Stats ──────────────────────────────────────── -->
+  <div class="panel">
+    <div class="panel-header">Stats</div>
+
+    <div class="scroll">
+      <div class="stats-panel">
+
+        <div class="ship-title">
+          <div class="title-class">Midnight Sun</div>
+          <div class="title-meta">SM +7 · TL 9 · Streamlined · Shuttle</div>
+        </div>
+
+        <div class="stat-group">
+          <div class="stat-group-label">Derived</div>
+          <div class="stat-row">
+            <span class="stat-key">Cost</span>
+            <span class="stat-val">$4.26 M</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-key">PP</span>
+            <span class="stat-val">4 / 3</span>
+          </div>
+          <div class="pp-bar"><div class="pp-bar-fill" style="width:75%"></div></div>
+          <div class="stat-row" style="margin-top:6px">
+            <span class="stat-key">Crew</span>
+            <span class="stat-val">12</span>
+          </div>
+          <div class="stat-row" style="margin-top:8px">
+            <span class="stat-key">dDR front</span>
+            <span class="stat-val">3</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-key">dDR central</span>
+            <span class="stat-val">3</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-key">dDR rear</span>
+            <span class="stat-val">3</span>
+          </div>
+          <div class="stat-row" style="margin-top:8px">
+            <span class="stat-key">Accel</span>
+            <span class="stat-val">3 G</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-key">Delta-V</span>
+            <span class="stat-val">55 mps</span>
+          </div>
+          <div class="stat-row" style="margin-top:8px">
+            <span class="stat-key">HT</span>
+            <span class="stat-val">12</span>
+          </div>
+        </div>
+
+        <!-- Override section -->
+        <div class="override-toggle" id="ovr-toggle" onclick="toggleOverrides()">
+          <span class="arrow" id="ovr-arrow">▶</span>
+          <span>Overrides</span>
+        </div>
+        <div class="override-body" id="ovr-body">
+          <div class="override-row">
+            <label>Accel (G)</label>
+            <input type="number" step="0.1" placeholder="">
+            <span class="derived">← 3</span>
+          </div>
+          <div class="override-row">
+            <label>Delta-V</label>
+            <input type="number" placeholder="">
+            <span class="derived">← 55 mps</span>
+          </div>
+          <div class="override-row">
+            <label>dDR front</label>
+            <input type="number" placeholder="">
+            <span class="derived">← 3</span>
+          </div>
+          <div class="override-row">
+            <label>dDR central</label>
+            <input type="number" placeholder="">
+            <span class="derived">← 3</span>
+          </div>
+          <div class="override-row">
+            <label>dDR rear</label>
+            <input type="number" placeholder="">
+            <span class="derived">← 3</span>
+          </div>
+          <div class="override-row">
+            <label>HT</label>
+            <input type="number" placeholder="">
+            <span class="derived">← 12</span>
+          </div>
+          <div class="override-actions">
+            <button class="btn-sm">Save</button>
+            <button class="btn-sm">Clear all → auto</button>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="text-area-block">
+          <label>Description</label>
+          <textarea placeholder="Ship background, design rationale, variants… (markdown)"></textarea>
+        </div>
+
+        <!-- Image -->
+        <div class="image-block">
+          <label>Image</label>
+          <div class="image-drop-zone" id="img-zone" onclick="imgZoneClick(event)">
+            <input type="file" id="img-input" accept="image/*" onchange="imgSelected(event)">
+            <div class="image-drop-placeholder">
+              Drop image here<br>
+              <span style="color:#333">or click to browse</span><br>
+              <span style="color:#2a2a2a;font-size:10px">deck plan, artwork, photograph</span>
+            </div>
+            <img class="image-preview" id="img-preview" src="" alt="Ship image">
+          </div>
+          <div class="image-actions" id="img-actions" style="display:none">
+            <button class="btn-sm" onclick="imgClear()">Remove image</button>
+            <span style="color:#444;font-size:11px;align-self:center" id="img-filename"></span>
+          </div>
+        </div>
+
+        <div class="danger-zone">
+          <button class="btn-danger">Delete ship</button>
+        </div>
+
+      </div><!-- /stats-panel -->
+    </div><!-- /scroll -->
+  </div><!-- /right panel -->
+
+</div><!-- /app -->
+
+<div class="proto-badge">PROTOTYPE · layout only</div>
+
+<script>
+  function catFilter(btn) {
+    btn.classList.toggle('active');
+  }
+
+  function toggleOverrides() {
+    const toggle = document.getElementById('ovr-toggle');
+    const body   = document.getElementById('ovr-body');
+    const arrow  = document.getElementById('ovr-arrow');
+    const open   = body.classList.toggle('open');
+    toggle.classList.toggle('open', open);
+    arrow.textContent = open ? '▼' : '▶';
+  }
+
+  function imgZoneClick(e) {
+    if (document.getElementById('img-zone').classList.contains('has-image')) return;
+    document.getElementById('img-input').click();
+  }
+
+  function imgSelected(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const preview = document.getElementById('img-preview');
+    preview.src = url;
+    document.getElementById('img-zone').classList.add('has-image');
+    document.getElementById('img-actions').style.display = 'flex';
+    document.getElementById('img-filename').textContent = file.name;
+  }
+
+  function imgClear() {
+    const input = document.getElementById('img-input');
+    const preview = document.getElementById('img-preview');
+    preview.src = '';
+    input.value = '';
+    document.getElementById('img-zone').classList.remove('has-image');
+    document.getElementById('img-actions').style.display = 'none';
+    document.getElementById('img-filename').textContent = '';
+  }
+</script>
+
+</body>
+</html>
