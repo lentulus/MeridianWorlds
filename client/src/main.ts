@@ -88,14 +88,23 @@ style.textContent = `
 
   .stats-box { background: #0d0d0d; border: 1px solid #1a1a1a; padding: 8px; border-radius: 4px; }
 
-  .slot-section { margin-bottom: 10px; }
-  .slot-section h4 { color: #555; font-size: 11px; margin-bottom: 4px; text-transform: uppercase; }
-  .slot-cell { display: flex; gap: 6px; align-items: center; padding: 3px 6px; margin-bottom: 2px;
-               background: #0e0e0e; border: 1px solid #1c1c1c; border-radius: 3px; cursor: grab; }
-  .slot-cell.core { border-color: #2a3a2a; }
-  .slot-cell.high-energy { border-color: #3a2a1a; }
-  .slot-num { color: #444; font-size: 11px; width: 30px; flex-shrink: 0; }
-  .slot-name { color: #999; }
+  .slot-section { margin-bottom: 14px; }
+  .slot-section-label { color: #888; font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+                        text-transform: uppercase; padding: 0 4px 4px; border-bottom: 1px solid #222;
+                        margin-bottom: 2px; }
+
+  .slot-row { display: flex; align-items: baseline; gap: 8px; padding: 3px 6px; border-radius: 2px;
+              cursor: pointer; }
+  .slot-row:hover { background: #141414; }
+  .slot-row.drag-over { background: #111a11; outline: 1px dashed #3a5a3a; }
+  .slot-row.slot-core { opacity: 0.85; }
+
+  .slot-num { color: #999; font-size: 11px; width: 32px; flex-shrink: 0; text-align: right; }
+  .slot-core .slot-num { color: #7a8aaa; }
+  .slot-name { flex: 1; color: #ccc; }
+  .slot-empty .slot-name { color: #aaa; font-style: italic; }
+  .slot-he-marker { color: #b88a4a; font-size: 10px; }
+  .slot-detail { color: #999; font-size: 11px; }
 
   .catalog-list { list-style: none; padding: 0; }
   .catalog-item { display: flex; justify-content: space-between; padding: 3px 4px; cursor: grab;
