@@ -3,6 +3,16 @@ import type { CatalogEntry } from '@worlds/shared';
 export function renderCatalogPanel(el: HTMLElement, entries: CatalogEntry[]) {
   el.innerHTML = '';
 
+  // Always-visible clear-slot dragger
+  const clearEl = document.createElement('div');
+  clearEl.className = 'catalog-item catalog-clear';
+  clearEl.draggable = true;
+  clearEl.textContent = '── clear slot ──';
+  clearEl.addEventListener('dragstart', (e) => {
+    e.dataTransfer?.setData('application/json', JSON.stringify({ system_id: null }));
+  });
+  el.appendChild(clearEl);
+
   const byCategory = new Map<string, CatalogEntry[]>();
   for (const e of entries) {
     const list = byCategory.get(e.category) ?? [];

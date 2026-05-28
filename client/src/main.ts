@@ -110,6 +110,8 @@ style.textContent = `
   .catalog-item { display: flex; justify-content: space-between; padding: 3px 4px; cursor: grab;
                   border-bottom: 1px solid #111; }
   .catalog-item:hover { background: #141414; }
+  .catalog-clear { justify-content: center; color: #444; font-style: italic; font-size: 11px;
+                   border-bottom: 1px solid #1a1a1a; margin-bottom: 6px; }
   .ci-name { color: #bbb; }
   .ci-stats { color: #556; font-size: 11px; }
   details > summary { cursor: pointer; color: #667; padding: 4px 0; font-size: 11px;

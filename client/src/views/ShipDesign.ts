@@ -68,17 +68,50 @@ export function ShipDesignView(container: HTMLElement) {
       </table>`;
   }
 
+  function defaultDetail(e: CatalogEntry): string {
+    if (e.ddr_us        != null) return `dDR ${e.ddr_us}`;
+    if (e.acceleration_g != null) return `${e.acceleration_g}G`;
+    if (e.power_points  != null && e.power_points > 0) return `${e.power_points} PP`;
+    if (e.workspaces    != null) return `${e.workspaces} ws`;
+    return '';
+  }
+
   function renderSlots() {
     if (!ship) { slotsEl.innerHTML = ''; return; }
     renderSlotGrid(slotsEl, ship.slots, ship.sm, async (slot, entry) => {
       if (!ship) return;
-      const updated = ship.slots.map(s =>
-        s.hull_section === slot.hull_section && s.slot_number === slot.slot_number
-          ? { ...s, system_id: entry?.system_id ?? null, detail: null }
-          : s
-      );
-      await putSlots(ship.ship_id, { slots: updated as any });
-      ship = await fetchShip(ship.ship_id);
+
+      // Remove any existing DB slot that covers this position
+      const filtered = ship.slots.filter(s => {
+        if (s.hull_section !== slot.hull_section) return true;
+        if (slot.is_core) return !s.is_core;
+        const from = s.slot_number ?? 99;
+        const to   = s.slot_to   ?? from;
+        const pos  = slot.slot_number ?? 99;
+        return !(from <= pos && pos <= to);
+      });
+
+      if (entry === null) {
+        await putSlots(ship.ship_id, { slots: filtered as any });
+      } else {
+        const detail = prompt(`Detail for "${entry.name}":`, defaultDetail(entry));
+        if (detail === null) return; // cancelled
+        filtered.push({
+          hull_section: slot.hull_section,
+          slot_number:  slot.slot_number,
+          slot_to:      slot.slot_to ?? null,
+          is_core:      slot.is_core,
+          is_high_energy: entry.is_high_energy,
+          system_id:    entry.system_id,
+          system_name:  entry.name,
+          category:     entry.category,
+          detail:       detail || null,
+          power_points: entry.power_points,
+        } as any);
+        await putSlots(ship.ship_id, { slots: filtered as any });
+      }
+
+      ship = await fetchShip(ship!.ship_id);
       renderSlots();
     });
   }
